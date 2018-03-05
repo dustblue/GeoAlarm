@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">GeoAlarm</string>
+    <string name="action_settings">Settings</string>
+    <string name="pick_a_place">Pick a place</string>
+    <string name="api_key">AIzaSyBjZbOFMPSx9bRssfM1VBXXB8xMTxi6mfs</string>
+    <string name="reached">Reached!!!</string>
+</resources>
