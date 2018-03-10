@@ -4,4 +4,6 @@
     <string name="pick_a_place">Pick a place</string>
     <string name="api_key">AIzaSyBjZbOFMPSx9bRssfM1VBXXB8xMTxi6mfs</string>
     <string name="reached">Reached!!!</string>
+    <string name="title_activity_alarms">AlarmsActivity</string>
+    <string name="no_alarms_add_new">No Alarms! Add New!</string>
 </resources>

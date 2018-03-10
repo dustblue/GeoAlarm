@@ -1,11 +1,13 @@
 package com.rakesh.geoalarm;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -52,13 +54,26 @@ public class MainActivity extends AppCompatActivity {
         intent = new Intent(this, LocationService.class);
         bundle = getIntent().getExtras();
 
-        if (bundle != null) reached = bundle.getBoolean("ifReached");
-        if (reached) {
-            textView.setText(getResources().getString(R.string.reached));
+        if (bundle != null && bundle.getBoolean("ifReached")) {
+            textView.clearComposingText();
             Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+            final Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
             r.play();
+            new AlertDialog.Builder(this)
+                    .setTitle("Reached")
+                    .setMessage("You have reached your location\n")
+                    .setIcon(R.drawable.ic_alarm)
+                    .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            r.stop();
+                        }
+                    })
+                    .create()
+                    .show();
+
         }
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

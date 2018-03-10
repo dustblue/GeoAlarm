@@ -1,29 +1,38 @@
 package com.rakesh.geoalarm;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import java.util.Objects;
 
 import static com.rakesh.geoalarm.MainActivity.ACCURACY_LEVEL_MEDIUM;
+import static com.rakesh.geoalarm.MainActivity.TAG;
 import static com.rakesh.geoalarm.MainActivity.roundOff;
 
 public class LocationService extends Service {
-    public static final String TAG = "Geo";
+    public final static double AVERAGE_RADIUS_OF_EARTH_KM = 6378.137;
     private LocationManager mLocationManager = null;
     private static final int LOCATION_INTERVAL = 1000;
     private static final float LOCATION_DISTANCE = 10f;
     int accuracy;
     Bundle bundle;
+    boolean ifReached = false;
+    Notification notification;
+//    NotificationManager notificationManager;
 
     private class LocationListener implements android.location.LocationListener {
         Location mLastLocation;
@@ -75,7 +84,40 @@ public class LocationService extends Service {
             accuracy = bundle.getInt("accuracy", ACCURACY_LEVEL_MEDIUM);
         }
         Log.e(TAG, "onStartCommand");
-        super.onStartCommand(intent, flags, startId);
+
+        if (Objects.equals(intent.getAction(), "start")) {
+
+            Intent notificationIntent = new Intent(this, MainActivity.class);
+            intent.setAction("start");
+
+            notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
+                    notificationIntent, 0);
+
+            Intent i = new Intent(this, MainActivity.class);
+            intent.setAction("cancel");
+            PendingIntent cancelIntent = PendingIntent.getService(this, 0,
+                    i, 0);
+
+//            notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+
+            notification = new NotificationCompat.Builder(this, "")
+                    .setContentTitle("GeoAlarm")
+                    .setContentText("Upcoming Alarm")
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setLargeIcon(Bitmap.createScaledBitmap(BitmapFactory.decodeResource(getResources(),
+                            R.drawable.ic_alarm), 128, 128, false))
+                    .setContentIntent(pendingIntent)
+                    .setOngoing(true)
+                    .setPriority(Notification.PRIORITY_MAX)
+                    .addAction(R.drawable.ic_bubble, "Cancel", cancelIntent)
+                    .build();
+            startForeground(101, notification);
+        } else if (Objects.equals(intent.getAction(), "cancel")) {
+            Log.i(TAG, "Pressed cancel");
+            stopForeground(true);
+            stopSelf();
+        }
         return START_STICKY;
     }
 
@@ -121,8 +163,8 @@ public class LocationService extends Service {
             }
         }
         Intent j = new Intent(this, MainActivity.class);
-        j.putExtra("ifReached", true);
-        j.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        j.putExtra("ifReached", ifReached);
+        j.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(j);
         super.onDestroy();
     }
@@ -144,8 +186,36 @@ public class LocationService extends Service {
         Double currentLat = roundOff(location.getLatitude(), accuracy);
         Double currentLng = roundOff(location.getLongitude(), accuracy);
         if (Objects.equals(currentLat, lat) && Objects.equals(currentLng, lng)) {
+            ifReached = true;
             stopSelf();
+        } else {
+//            StatusBarNotification[] notifications = notificationManager.getActiveNotifications();
+//            for (StatusBarNotification notification : notifications) {
+//                if (notification.getId() == 101
+//                        && ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)) != null) {
+            double distance = calculateDistance(currentLat, currentLng, lat, lng);
+            Log.i(TAG, "Distance : " + distance);
+
+//                    //TODO Update Notification
+//                }
+//            }
         }
+    }
+
+    public double calculateDistance(double userLat, double userLng,
+                                    double venueLat, double venueLng) {
+
+        double latDistance = Math.toRadians(userLat - venueLat);
+        double lngDistance = Math.toRadians(userLng - venueLng);
+
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(userLat)) * Math.cos(Math.toRadians(venueLat))
+                * Math.sin(lngDistance / 2) * Math.sin(lngDistance / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return (Math.round(AVERAGE_RADIUS_OF_EARTH_KM * c));
+
     }
 
 }
